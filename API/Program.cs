@@ -1,3 +1,4 @@
+using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ builder.Services.AddDbContext<StoreContext>(opt =>
 {
     opt.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 // DAFTARKAN CONTROLLERS
 builder.Services.AddControllers();
@@ -30,29 +33,20 @@ app.UseAuthorization();
 // PENTING: AKTIFKAN ROUTE UNTUK CONTROLLERS
 app.MapControllers();
 
-// Endpoint minimal API bawaan, boleh dipertahankan atau dihapus
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+using var scope = app.Services.CreateScope();
+var services = scope.ServiceProvider;
+var context = services.GetRequiredService<StoreContext>();
+var logger = services.GetRequiredService<ILogger<Program>>();
 
-app.MapGet("/weatherforecast", () =>
+try
 {
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    await context.Database.MigrateAsync();
+    await StoreContextSeed.SeedAsync(context);
+}
+catch (Exception ex)
+{
+    logger.LogError(ex, "An error occured during migration");
+}
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
