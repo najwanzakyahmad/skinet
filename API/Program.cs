@@ -13,6 +13,8 @@ builder.Services.AddDbContext<StoreContext>(opt =>
 });
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 // DAFTARKAN CONTROLLERS
 builder.Services.AddControllers();
@@ -24,6 +26,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 
